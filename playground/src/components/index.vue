@@ -5,12 +5,14 @@
       <table width="100%" cellspacing="0" cellpadding="0">
         <thead>
           <tr>
-            <th v-for="(weekDay,i) in weekTitle" :key="i">{{weekDay}}</th>
+            <th v-for="(weekDay,i) in weekTitle" :key="i">{{ weekDay }}</th>
           </tr>
         </thead>
         <tbody>
           <tr :class="{'no-left-border':!border}" v-for="(week,j) in weekCount" :key="j">
-            <td v-for="(day,m) in 7" :key="m">
+            <td v-for="(day,m) in 7" :key="m" class="calendar__cell">
+              <div v-if="isHoliday(currentDate(week,day).date)" class="calendar__cell--special-day calendar__cell--is-holiday">休</div>
+              <div v-if="isWorkday(currentDate(week,day).date) && (day === 6 || day === 7)" class="calendar__cell--special-day calendar__cell--is-workday">班</div>
               <slot name="dateCell" v-bind:date="currentDate(week,day)"></slot>
               <div @click="dateClick(currentDate(week,day))"><Item :source="currentDate(week,day)" /></div>
             </td>
@@ -22,27 +24,37 @@
 </template>
 
 <script>
-import calendar from "js-calendar-converter";
-import Item from "./item.vue";
-import TitleBar from "./title-bar.vue";
-import { h } from 'vue';
+import dayjs from 'dayjs'
+import date2024 from 'chinese-days/dist/years/2024.json'
+import date2025 from 'chinese-days/dist/years/2025.json'
+import date2026 from 'chinese-days/dist/years/2026.json'
+import calendar from 'js-calendar-converter'
+import Item from './item.vue'
+import TitleBar from './title-bar.vue'
+import { h } from 'vue'
 
+const isHoliday = (date) => date2024.holidays[dayjs(date).format('YYYY-MM-DD')]
+  || date2025.holidays[dayjs(date).format('YYYY-MM-DD')]
+  || date2026.holidays[dayjs(date).format('YYYY-MM-DD')]
+const isWorkday = (date) => date2024.workdays[dayjs(date).format('YYYY-MM-DD')]
+  || date2025.workdays[dayjs(date).format('YYYY-MM-DD')]
+  || date2026.workdays[dayjs(date).format('YYYY-MM-DD')]
 export default {
-  name: "Calendar",
+  name: 'Calendar',
   components: { Item, TitleBar },
   props: {
     width: {
       type: String,
-      default: "100%"
+      default: '100%'
     },
     height: {
       type: String,
-      default: "100%"
+      default: '100%'
     },
     defaultDate: {
       type: [Date, String],
-      default() {
-        return new Date();
+      default () {
+        return new Date()
       }
     },
     selectDate: {
@@ -80,7 +92,7 @@ export default {
     },
     renderTitle: {
       type: Function,
-      default: function(year, month, ctx) {
+      default: function (year, month, ctx) {
         return h('div', { class: 'calendar-pro__title' }, [
           h('div', { class: 'calendar-pro__title-info' }, [
             h('span', { class: 'calendar-pro__year' }, `${year}年`),
@@ -96,7 +108,7 @@ export default {
               h('button', { onClick: () => ctx.turn(12) }, '下一年')
             ]) :
             null
-        ]);
+        ])
       }
     },
     //  是否渲染农历
@@ -116,7 +128,7 @@ export default {
     },
     weekTitleAlign: {
       type: String,
-      default: "right"
+      default: 'right'
     },
     weekCount: {
       type: Number,
@@ -136,7 +148,7 @@ export default {
     },
     renderContent: {
       type: Function,
-      default: function(data, ctx) {
+      default: function (data, ctx) {
         const {
           isToday,
           isSelect,
@@ -160,72 +172,74 @@ export default {
           festival,
           term,
           renderMonth,
-        } = data;
+        } = data
 
         const boxClassName = `day-box
-          ${isSelect ? "select" : ""}
-          ${isDisabled ? "disabled" : ""}
-          ${isHighlighter ? "highlighter" : ""}
-          ${isToday ? "today" : ""}
-          ${isWeekend ? "weekend" : ""}
-          ${isOtherMonthDay ? "other-month-day" : ""} `;
+          ${isSelect ? 'select' : ''}
+          ${isDisabled ? 'disabled' : ''}
+          ${isHighlighter ? 'highlighter' : ''}
+          ${isToday ? 'today' : ''}
+          ${isWeekend ? 'weekend' : ''}
+          ${isOtherMonthDay ? 'other-month-day' : ''} `
 
         // 节日、节气
         const $festival = festival ?
-          h('div', {}, festival) : null;
+            h('div', {}, festival) : null
 
         const $lunarFestival = lunarFestival ?
-          h('div', {}, lunarFestival) : null;
+            h('div', {}, lunarFestival) : null
 
         const $term = term ?
-          h('div', { class: 'info-term' }, term) : null;
+            h('div', { class: 'info-term' }, term) : null
 
-        const $date = h('span', {}, day);
+        const $date = h('span', {}, day)
 
         return h('div', { class: boxClassName }, [
-          h('div', { class: 'info-date' }, [$date]),
+          h('div', { class: ['info-date', isWeekend ? 'calendar__cell--is-holiday' : ''] }, [$date]),
           ctx.showFestival ?
-            h('div', { class: 'info-festival' }, [$festival, $lunarFestival]) : null,
+              h('div', { class: 'info-festival' }, [$festival, $lunarFestival]) : null,
           ctx.showLunar ?
-            h('div', { class: 'info-lunar' }, lunar) : null,
+              h('div', { class: 'info-lunar' }, lunar) : null,
           ctx.showTerm ? $term : null
-        ]);
+        ])
       }
     },
     beforeRender: Function
   },
-  created() {
-    this.render(this.renderYear, this.renderMonth);
+  created () {
+    this.render(this.renderYear, this.renderMonth)
   },
-  data() {
-    const date = new Date(this.defaultDate);
+  data () {
+    const date = new Date(this.defaultDate)
     return {
       renderYear: date.getFullYear(),
       renderMonth: date.getMonth() + 1,
       currentMonthDays: [],
       weekTitle: []
-    };
+    }
   },
   methods: {
-    dateClick(date) {
+    isHoliday,
+    isWorkday,
+    dateClick (date) {
       // 判断不可点击
       if (!date.isDisabled) {
-        this.$emit("date-click", date);
-        let tempDate = this.formatDate(date.date);
-        var index = this.selectDate.indexOf(tempDate);
+        this.$emit('date-click', date)
+        let tempDate = this.formatDate(date.date)
+        var index = this.selectDate.indexOf(tempDate)
         if (this.multiple) {
           if (index > -1) {
-            this.selectDate.splice(index, 1);
+            this.selectDate.splice(index, 1)
           } else {
-            this.selectDate.push(tempDate);
+            this.selectDate.push(tempDate)
           }
-          date.isSelect = !date.isSelect;
+          date.isSelect = !date.isSelect
         } else {
-          this.selectDate.length = 0;
-          this.selectDate.push(tempDate);
-          date.isSelect = true;
+          this.selectDate.length = 0
+          this.selectDate.push(tempDate)
+          date.isSelect = true
           // 强制render
-          this.render(date.year, date.month, this.weekCount);
+          this.render(date.year, date.month, this.weekCount)
         }
       }
     },
@@ -233,20 +247,20 @@ export default {
      * 获取当前渲染的月份
      * @returns {{year: number | *, month: methods.renderMonth, days: methods.renderMonth}}
      */
-    getRenderedMonth() {
+    getRenderedMonth () {
       return {
         year: this.renderYear,
         month: this.renderMonth,
         days: this.currentMonthDays
-      };
+      }
     },
     /**
      * 强制渲染某个月份
      * @param year
      * @param month
      */
-    renderThisMonth(year, month) {
-      this.render(year, month);
+    renderThisMonth (year, month) {
+      this.render(year, month)
     },
     /**
      * 渲染
@@ -254,42 +268,42 @@ export default {
      * @param month
      * @param weekCount
      */
-    render(year, month, weekCount = this.weekCount) {
-      var result = this.monthDetail(year, month, weekCount);
-      var beforeRender = this.beforeRender;
+    render (year, month, weekCount = this.weekCount) {
+      var result = this.monthDetail(year, month, weekCount)
+      var beforeRender = this.beforeRender
 
       // 重新绑定数据->渲染
       var setInfo = () => {
-        this.currentMonthDays = result;
-        this.renderYear = year;
-        this.renderMonth = month;
-      };
+        this.currentMonthDays = result
+        this.renderYear = year
+        this.renderMonth = month
+      }
 
       // 如果有beforeRender回调
-      if (beforeRender && typeof beforeRender === "function") {
-        beforeRender(year, month, setInfo);
+      if (beforeRender && typeof beforeRender === 'function') {
+        beforeRender(year, month, setInfo)
       } else {
-        setInfo();
+        setInfo()
       }
     },
     //  日期格式化yyyy-mm-dd
-    formatDate: function(date) {
-      let year = date.getFullYear();
-      let month = date.getMonth() + 1;
-      let day = date.getDate();
+    formatDate: function (date) {
+      let year = date.getFullYear()
+      let month = date.getMonth() + 1
+      let day = date.getDate()
 
       if (month < 10) {
-        month = "0" + month;
+        month = '0' + month
       }
       if (day < 10) {
-        day = "0" + day;
+        day = '0' + day
       }
-      return year + "-" + month + "-" + day;
+      return year + '-' + month + '-' + day
     },
     //  日期转时间戳
-    dateToTime: function(date) {
-      let timestamp = new Date(date).getTime();
-      return timestamp;
+    dateToTime: function (date) {
+      let timestamp = new Date(date).getTime()
+      return timestamp
     },
     /**
      * 计算该月需要渲染的日期信息
@@ -298,138 +312,138 @@ export default {
      * @param weekCount
      * @returns {Array}
      */
-    monthDetail(year, month, weekCount) {
+    monthDetail (year, month, weekCount) {
       // 计算用的month为传入month - 1
-      var monthToUse = month - 1;
+      var monthToUse = month - 1
       // 构建该月第一天date对象
-      var firstDate = new Date(year, monthToUse);
+      var firstDate = new Date(year, monthToUse)
 
       // 获取周几信息,0表示周日
-      var weekDay = firstDate.getDay();
+      var weekDay = firstDate.getDay()
       // console.log("weekDay", weekDay);
 
       // firstDayOfWeek设置每周起始日，默认周日0
       // 将date设置为该周的第一天
       switch (this.firstDayOfWeek) {
         case 7:
-          this.weekTitle = ["日", "一", "二", "三", "四", "五", "六"];
-          firstDate.setDate(1 - weekDay);
-          break;
+          this.weekTitle = ['日', '一', '二', '三', '四', '五', '六']
+          firstDate.setDate(1 - weekDay)
+          break
         case 1:
-          this.weekTitle = ["一", "二", "三", "四", "五", "六", "日"];
+          this.weekTitle = ['一', '二', '三', '四', '五', '六', '日']
           if (weekDay != 0) {
-            firstDate.setDate(2 - weekDay);
+            firstDate.setDate(2 - weekDay)
           } else {
-            firstDate.setDate(weekDay - 5);
+            firstDate.setDate(weekDay - 5)
           }
-          break;
+          break
         case 2:
-          this.weekTitle = ["二", "三", "四", "五", "六", "日", "一"];
+          this.weekTitle = ['二', '三', '四', '五', '六', '日', '一']
           if (weekDay == 1) {
-            firstDate.setDate(weekDay - 6);
+            firstDate.setDate(weekDay - 6)
           } else if (weekDay != 0) {
-            firstDate.setDate(3 - weekDay);
+            firstDate.setDate(3 - weekDay)
           } else {
-            firstDate.setDate(weekDay - 4);
+            firstDate.setDate(weekDay - 4)
           }
-          break;
+          break
         case 3:
-          this.weekTitle = ["三", "四", "五", "六", "日", "一", "二"];
+          this.weekTitle = ['三', '四', '五', '六', '日', '一', '二']
           if (weekDay == 1) {
-            firstDate.setDate(weekDay - 5);
+            firstDate.setDate(weekDay - 5)
           } else if (weekDay == 2) {
-            firstDate.setDate(weekDay - 7);
+            firstDate.setDate(weekDay - 7)
           } else if (weekDay != 0) {
-            firstDate.setDate(4 - weekDay);
+            firstDate.setDate(4 - weekDay)
           } else {
-            firstDate.setDate(weekDay - 3);
+            firstDate.setDate(weekDay - 3)
           }
-          break;
+          break
         case 4:
-          this.weekTitle = ["四", "五", "六", "日", "一", "二", "三"];
+          this.weekTitle = ['四', '五', '六', '日', '一', '二', '三']
           if (weekDay == 3) {
-            firstDate.setDate(weekDay - 8);
+            firstDate.setDate(weekDay - 8)
           } else if (weekDay == 1) {
-            firstDate.setDate(weekDay - 4);
+            firstDate.setDate(weekDay - 4)
           } else if (weekDay == 2) {
-            firstDate.setDate(weekDay - 6);
+            firstDate.setDate(weekDay - 6)
           } else if (weekDay != 0) {
-            firstDate.setDate(5 - weekDay);
+            firstDate.setDate(5 - weekDay)
           } else {
-            firstDate.setDate(weekDay - 2);
+            firstDate.setDate(weekDay - 2)
           }
-          break;
+          break
         case 5:
-          this.weekTitle = ["五", "六", "日", "一", "二", "三", "四"];
+          this.weekTitle = ['五', '六', '日', '一', '二', '三', '四']
           if (weekDay == 3) {
-            firstDate.setDate(weekDay - 7);
+            firstDate.setDate(weekDay - 7)
           } else if (weekDay == 1) {
-            firstDate.setDate(weekDay - 3);
+            firstDate.setDate(weekDay - 3)
           } else if (weekDay == 2) {
-            firstDate.setDate(weekDay - 5);
+            firstDate.setDate(weekDay - 5)
           } else if (weekDay != 0) {
-            firstDate.setDate(6 - weekDay);
+            firstDate.setDate(6 - weekDay)
           } else {
-            firstDate.setDate(weekDay - 1);
+            firstDate.setDate(weekDay - 1)
           }
-          break;
+          break
         case 6:
-          this.weekTitle = ["六", "日", "一", "二", "三", "四", "五"];
+          this.weekTitle = ['六', '日', '一', '二', '三', '四', '五']
           if (weekDay == 0) {
-            firstDate.setDate(weekDay);
+            firstDate.setDate(weekDay)
           } else if (weekDay == 1) {
-            firstDate.setDate(weekDay - 2);
+            firstDate.setDate(weekDay - 2)
           } else if (weekDay == 2) {
-            firstDate.setDate(weekDay - 4);
+            firstDate.setDate(weekDay - 4)
           } else if (weekDay == 3) {
-            firstDate.setDate(weekDay - 6);
+            firstDate.setDate(weekDay - 6)
           } else if (weekDay == 4) {
-            firstDate.setDate(weekDay - 8);
+            firstDate.setDate(weekDay - 8)
           } else if (weekDay == 5) {
-            firstDate.setDate(weekDay - 10);
+            firstDate.setDate(weekDay - 10)
           } else {
-            firstDate.setDate(weekDay - 5);
+            firstDate.setDate(weekDay - 5)
           }
-          break;
+          break
       }
       // 该月要显示的所有日期对象数组,包括前后月补完
-      var monthDays = [];
+      var monthDays = []
 
-      var todayDate = new Date();
+      var todayDate = new Date()
 
       for (let i = 0, cursor = firstDate; i < weekCount * 7; i++) {
         // console.log("cursor",cursor)
-        let day = cursor.getDate();
+        let day = cursor.getDate()
 
-        let thisDate = new Date(cursor);
+        let thisDate = new Date(cursor)
         // console.log("thisDate", thisDate);
         let isToday =
           todayDate.getFullYear() == thisDate.getFullYear() &&
           todayDate.getMonth() == thisDate.getMonth() &&
-          todayDate.getDate() == thisDate.getDate();
+          todayDate.getDate() == thisDate.getDate()
 
-        let tempDate = this.formatDate(thisDate);
-        let isSelect = this.selectDate.indexOf(tempDate) >= 0 || false;
-        let isHighlighter = this.highlighterDate.indexOf(tempDate) >= 0 || false;
-        var isDisabled;
+        let tempDate = this.formatDate(thisDate)
+        let isSelect = this.selectDate.indexOf(tempDate) >= 0 || false
+        let isHighlighter = this.highlighterDate.indexOf(tempDate) >= 0 || false
+        var isDisabled
         if (this.maxDate && this.minDate && this.disabledDate) {
-          isDisabled = (this.dateToTime(thisDate) >= this.dateToTime(this.maxDate)) || (this.dateToTime(thisDate) <= this.dateToTime(this.minDate) - 86400000) || this.disabledDate.indexOf(tempDate) >= 0;
+          isDisabled = (this.dateToTime(thisDate) >= this.dateToTime(this.maxDate)) || (this.dateToTime(thisDate) <= this.dateToTime(this.minDate) - 86400000) || this.disabledDate.indexOf(tempDate) >= 0
         } else if (this.maxDate && this.disabledDate) {
-          isDisabled = this.dateToTime(thisDate) >= this.dateToTime(this.maxDate) || this.disabledDate.indexOf(tempDate) >= 0;
+          isDisabled = this.dateToTime(thisDate) >= this.dateToTime(this.maxDate) || this.disabledDate.indexOf(tempDate) >= 0
         } else if (this.minDate && this.disabledDate) {
-          isDisabled = this.dateToTime(thisDate) <= this.dateToTime(this.minDate) - 86400000 || this.disabledDate.indexOf(tempDate) >= 0;
+          isDisabled = this.dateToTime(thisDate) <= this.dateToTime(this.minDate) - 86400000 || this.disabledDate.indexOf(tempDate) >= 0
         } else if (this.disabledDate) {
-          isDisabled = this.disabledDate.indexOf(tempDate) >= 0;
+          isDisabled = this.disabledDate.indexOf(tempDate) >= 0
         } else {
-          isDisabled = false;
+          isDisabled = false
         }
         // console.log("isSelect",isSelect)
-        var defaultDate = new Date(this.defaultDate);
+        var defaultDate = new Date(this.defaultDate)
         let isDefaultDate =
           defaultDate.getFullYear() == defaultDate.getFullYear() &&
           defaultDate.getMonth() == defaultDate.getMonth() &&
-          defaultDate.getDate() == defaultDate.getDate();
-        let dateObj = calendar.solar2lunar(thisDate.getFullYear(),thisDate.getMonth()+1,thisDate.getDate());
+          defaultDate.getDate() == defaultDate.getDate()
+        let dateObj = calendar.solar2lunar(thisDate.getFullYear(), thisDate.getMonth() + 1, thisDate.getDate())
         monthDays.push({
           // 当前日期信息
           date: thisDate,
@@ -460,11 +474,11 @@ export default {
           // 当前面板渲染的年、月
           renderYear: year,
           renderMonth: month,
-        });
-        cursor.setDate(day + 1);
+        })
+        cursor.setDate(day + 1)
       }
       // console.log("monthDays", monthDays);
-      return monthDays;
+      return monthDays
     },
     /**
      * 从当前渲染的月份中根据第几周，第几天获取日期数据
@@ -472,51 +486,81 @@ export default {
      * @param day
      * @returns {*}
      */
-    currentDate(week, day) {
-      var index = (week - 1) * 7 + day - 1;
-      return this.currentMonthDays[index];
+    currentDate (week, day) {
+      var index = (week - 1) * 7 + day - 1
+      return this.currentMonthDays[index]
     },
     /**
      * 向后跳转几月，负数则是向前
      * @param step
      */
-    turn(step) {
+    turn (step) {
       var year = this.renderYear,
-        month = this.renderMonth - 1;
-      var date = new Date(year, month);
-      date.setMonth(date.getMonth() + step);
+          month = this.renderMonth - 1
+      var date = new Date(year, month)
+      date.setMonth(date.getMonth() + step)
 
       // 获取要渲染的年份、月份
-      var toRenderYear = date.getFullYear();
-      var toRenderMonth = date.getMonth() + 1;
+      var toRenderYear = date.getFullYear()
+      var toRenderMonth = date.getMonth() + 1
       // 渲染
-      this.render(toRenderYear, toRenderMonth);
+      this.render(toRenderYear, toRenderMonth)
     },
     /**
      * 跳转到当前月
      */
-    turnNow() {
-      var date = new Date();
+    turnNow () {
+      var date = new Date()
       // 获取要渲染的年份、月份
-      var toRenderYear = date.getFullYear();
-      var toRenderMonth = date.getMonth() + 1;
+      var toRenderYear = date.getFullYear()
+      var toRenderMonth = date.getMonth() + 1
       // 渲染
-      this.render(toRenderYear, toRenderMonth);
+      this.render(toRenderYear, toRenderMonth)
     }
   },
   watch: {
-    renderYear(year) {
-      this.$emit("year-change", year, this.renderMonth);
+    renderYear (year) {
+      this.$emit('year-change', year, this.renderMonth)
     },
-    renderMonth(month) {
-      this.$emit("month-change", this.renderYear, month);
+    renderMonth (month) {
+      this.$emit('month-change', this.renderYear, month)
     },
-    defaultDate(date) {
-      var day = new Date(date);
-      var year = day.getFullYear();
-      var month = day.getMonth() + 1;
-      this.render(year, month);
+    defaultDate (date) {
+      var day = new Date(date)
+      var year = day.getFullYear()
+      var month = day.getMonth() + 1
+      this.render(year, month)
     }
   }
-};
+}
 </script>
+
+<style lang="scss" scoped>
+.calendar__cell {
+  position: relative;
+}
+.calendar__cell--special-day {
+  position: absolute;
+  z-index: 1000;
+  top: 10px;
+  right: 10px;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-size: 10px;
+  border-radius: 50%;
+}
+.calendar__cell--is-holiday {
+  background-color: #ff8800;
+}
+
+.calendar__cell--is-workday {
+  background-color: #d00000;
+}
+.calendar__cell :deep(.info-date.calendar__cell--is-holiday) {
+  color: #d00000;
+}
+</style>
